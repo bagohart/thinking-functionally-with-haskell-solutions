@@ -1,0 +1,12 @@
+map double [1,4,4,3] -> [2,8,8,6]
+map (double . double) [1,4,4,3] -> [4,16,16,12]
+map double [] -> []
+
+sum . map double = double . sum
+^ true: a*b + a*c = a * (b + c) aka distributive law
+
+sum . map sum = sum . concat
+^ (a + b) + (c + d) = (a + b + c + d) aka associative law
+
+sum . sort = sum
+^ (a + b) = (b + a) aka commutative law

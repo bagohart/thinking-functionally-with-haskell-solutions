@@ -1,0 +1,14 @@
+associative:
+[x] numerical addition
+[x] functional composition: (f . g) . h = f (g . h) because
+((f . g) . h)x = (f . g) (h(x)) = f(g(h(x))) and
+(f . (g . h))x = f((g.h)(x)) = f(g(h(x)))
+[x] list concatenation: [a_1..a_n] ++ ([b_1..b_n] ++ [c_1..c_n]) = [a_1..a_n b_1..b_n c_1..c_n] = ([a_1..a_n] ++ [b_1..b_n]) ++ [c_1..c_n]
+
+Identity elements:
+addition: 0
+concatenation: []
+functional composition: id
+
+id :: a -> a
+id x = x

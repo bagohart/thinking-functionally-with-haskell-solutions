@@ -1,0 +1,15 @@
+anagrams :: Int -> [Word] -> String
+
+General idea: filter the words, map them to their normal form (sorted single letters), sort according to normal form, group according to normal form
+
+filterTheWords :: Int -> [Word] -> [Word]
+
+mapToNormalForm :: [Word] -> [(Word, Word)]
+
+sortAccToNoFo :: [(Word, Word)] -> [(Word, Word)]
+
+group :: [(Word, Word)] -> [(Int, Word, Word)]
+
+filterRelevant :: [(Int, Word, Word)] -> [(Word, Word)]
+
+details to be filled in later

@@ -1,0 +1,9 @@
+words :: Text -> [Word]
+
+words . map toLower :: Text -> [Word]
+
+thing :: Text -> [Word]
+thing t = map (map toLower) (words t)
+
+thing = map (map toLower) . words
+or something o_O
