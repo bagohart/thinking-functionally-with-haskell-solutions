@@ -1,0 +1,11 @@
+[0,1] <- no :)
+double -3 <- subtraction, double interpreted as variable, but is function. should produce strange error message.
+double (-3) <- Int
+double double 0 <- function application (double double) is evaluated first, should fail
+if 1==0 then 2==1 <- else branch is missing
+"++" == "+" ++ "+" <- Bool
+[(+), (-)] <- Num a => [a -> a -> a] (a list of binary functions on numbers)
+[...] <- [[[[a]]]]
+concat ["tea","for",'2'] <- broken types, Char != [Char]
+concat ["tea","for","2"] <- [Char]
+

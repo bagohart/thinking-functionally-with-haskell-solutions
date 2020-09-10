@@ -1,0 +1,11 @@
+head (map f xs)
+^ Beaver evaluates f n times. Susan evaluates min(1,n) times.
+^ Beaver would evaluate faster if the expression was written as f . head
+
+head . filter p
+^ Beaver would run p on all elements of the list :'(
+
+head . filter p . map f
+^ should be equivalent to
+f . first (p . f)
+
