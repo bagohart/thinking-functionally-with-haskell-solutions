@@ -8,4 +8,5 @@ head . filter p
 head . filter p . map f
 ^ should be equivalent to
 f . first (p . f)
-
+(actually, the solutions claim that a complete dedicated implementation is needed for this.
+so maybe this is wrong. or it is just to avoid the double application of f?)

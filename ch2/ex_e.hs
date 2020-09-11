@@ -12,3 +12,7 @@ firstFunction = id
 
 secondFunction :: Maybe a -> Maybe a
 secondFunction x = Nothing
+
+-- ok, that was wrong: I forgot that undefined can be returned, too, so everything can be turned to undefined.
+-- Then we get:
+-- 2 possible values for Nothing and 3 possible values for Just x => 2 * 3 = 6 possible functions

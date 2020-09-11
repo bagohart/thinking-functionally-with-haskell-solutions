@@ -27,3 +27,4 @@ daySuffix day
         where
             rem = day `mod` 10
 
+-- this is broken because 11th != 11st (:

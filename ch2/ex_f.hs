@@ -16,3 +16,5 @@ exp2 x n |  n == 0 = 1
 -- could be uneven after each step:
 -- 31 / 2 = 15 / 2 = 7 / 2 = 3 / 2 = 1
 -- so that's approximately 2 * (log 2) n or something
+--
+-- ^ the solution says it takes only floor(log n). hm. that's a bit imprecise?
