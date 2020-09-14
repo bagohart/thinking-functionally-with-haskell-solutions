@@ -42,6 +42,12 @@ diagonalRun' n = take (fromIntegral $ n+1) (iterate (\(x,y) ->  (x-1, y+1)) (n,0
 allPairs3 :: Integral a => [(a,a)]
 allPairs3 = concat $ map diagonalRun' [0..]
 
+-- aaaaand an even simpler version
+allPairs4 :: Integral a => [(a,a)]
+allPairs4 = concat $ map diagonalRun4 [0..]
+    where
+        diagonalRun4 n = zip [0..n] [n,n-1..0]
+
 -- the sample solution ends up with mostly the same strategy, but computed a bit differently:
 -- it restricts the second element to go up to only as far as the first element:
 -- and subtracts at directly.
