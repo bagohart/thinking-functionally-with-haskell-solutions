@@ -1,0 +1,32 @@
+-- Use the following law from chapter 6:
+--      foldr f e xs = foldl g e xs
+-- holds for all finite lists xs if
+--      f x (g y z) = g (f x y) z
+-- and
+--      f x e = g e x
+
+-- 1. Prove: foldr (\x n -> n+1) 0 xs = foldl (\n x -> 1+n) 0 xs
+-- e = 0
+-- f = (\x n -> n+1)
+-- f x n = n + 1
+-- g = (\n x -> 1+n)
+-- g n x = 1 + n
+-- The second condition holds because:
+-- f x 0 = 0+1 = 1
+-- g 0 x = 1+0 = 1
+-- The first condition holds because:
+-- f x (g y z) = (g y z) + 1 = (1+y)+1       ( = y + 2)
+-- g (f x y) z = 1 + (f x y) = 1+(y+1)       ( = y + 2)
+-- because + is strict and commutative and associative.
+
+-- 2. Prove: foldr (\x xs -> xs ++ [x]) [] xs = foldl (\xs x -> [x] ++ xs) [] xs
+-- e = []
+-- f x xs = xs ++ [x]
+-- g xs x = [x] ++ xs
+-- Second condition:
+-- f x [] = [] ++ [x] = [x]
+-- g [] x = [x] ++ [] = [x]
+-- First condition:
+-- f x (g y z) = (g y z) ++ [x] = ([z] ++ y) ++ [x]
+-- g (f x y) z = [z] ++ (f x y) = [z] ++ (y ++ [x])
+-- ^ both terms are equivalent because ++ is associative.
