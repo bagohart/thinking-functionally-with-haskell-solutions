@@ -1,0 +1,49 @@
+-- Prove:
+-- iterate f x = x : map f (iterate f x)
+
+-- This is the third version of iterate from the text.
+-- The prelude version is
+-- iterateP f x = x : iterateP f (f x)
+--
+-- Now I'm supposed to use approx magic like so:
+-- approx n (iterate f x) = approx n (x : map f (iterate f x))
+-- and use induction over n. hm.
+
+-- IB: n = 0
+-- approx 0 (iterate f x)
+-- { Def. approx: base case exhaustion }
+-- = undefined
+--
+-- approx 0 (x : map f (iterate f x))
+-- { Def. approx: base case exhaustion }
+-- = undefined
+
+-- IS: n+1
+-- approx (n+1) (iterate f x)
+-- { Prelude Def. iterateP, Def. approx }
+-- = x : approx n (iterate f (f x))
+--
+-- approx (n+1) (x : map f (iterate f x)
+-- { Def. approx }
+-- = x : approx n (map f (iterate f x))
+--
+-- The x on the left side is identical. That's good, I guess.
+-- But the right sides aren't obviously identical. Now I'll try another induction to prove this...
+
+-- Prove for all n: approx n (iterate f (f x)) = approx n (map f (iterate f x))
+-- IB: n = 0
+-- approx 0 (iterate f (f x)) = undefined
+-- approx 0 (map f (iterate f x)) = undefined
+-- by def. of approx.
+--
+-- IS: n+1
+-- approx (n+1) (iterate f (f x))
+-- = (f x) : approx n (iterate f (f (f x)))
+-- { IH with x' = (f x) }
+-- = (f x) : approx n (map f (iterate f (f x)))
+--
+-- approx (n+1) (map f (iterate f x))
+-- { Def. iterate and map } <- I'm not convinced this is legal because I seem to be switching between two different versions of iterate o______O but this is what the sample solution does, too...
+-- = approx (n+1) (f x : map f (iterate f (f x)))
+-- { Def. approx }
+-- = f x : approx n (map f (iterate f (f x)))

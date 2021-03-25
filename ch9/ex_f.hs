@@ -1,0 +1,12 @@
+-- The claim
+-- xs = ys if xs !! n = ys !! n
+-- is wrong.
+-- Give a counterexample.
+--
+-- The claim says that two lists are the same if all their elements are the same.
+-- The obvious example is
+-- xs = undefined
+-- ys = undefined : undefined : undefined : ...
+-- Then xs !! n = undefined !! n = undefined
+-- and ys !! n = undefined
+-- but both lists are not the same.

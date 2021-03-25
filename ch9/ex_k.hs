@@ -1,0 +1,42 @@
+-- Q:
+-- Assume f s.t.
+-- f(bottom) = 0
+-- f(x) = 1 for x != bottom
+-- is f computable?
+--
+-- A:
+-- f cannot be computable because it solves the halting problem:
+-- Define g s.t.:
+-- g x = if f x == 1 then True else False
+-- aaaand g is almighty.
+
+-- We can probably also solve this using the methods presented here:
+-- Computable functions are supposed to be monotonic w.r.t. <=, i.e.
+-- x <= y => f(x) <= f(y)
+-- Obviously,
+-- bot <= True
+-- and f(bot) = 0 !<- 1 = f(True)
+-- So f cannot be computable.
+
+-- Q2:
+-- What about
+-- f(finite list) = bottom
+-- f(partial list) = bottom
+-- f(infinite list) = 1
+--
+-- A:
+-- finite lists and infinite lists are not comparable.
+-- partial lists and infinite lists are comparable, but monotonicity is still violated.
+-- Still, this thing seems suspicious, since it can count to the end of infinity or something.
+-- The reduction to the halting problem should work like this:
+-- modify a function such that after it halts, it yields an infinite list.
+-- Now use f to see what happens on its input. 1 means the thing halts, anything else is bottom.
+-- Hm, this still seems sorta ok, because then it is semi decidable. hm.
+--
+-- Anyway, what about continuity?
+-- f(lim x_n) = lim f(x_n)
+--
+-- This breaks.
+-- f(lim x_n) = f (infinite_list) = 1
+-- lim f(x_n) = lim f(finite_list) = lim bottom = bottom
+-- this proves it's not computable.
