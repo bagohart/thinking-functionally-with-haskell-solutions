@@ -1,0 +1,113 @@
+import Control.Monad.State.Lazy
+
+add :: Int -> State Int ()
+add n = do m <- get
+           put (m+n)
+
+-- prove:
+-- sequence_ . map add = add . sum
+-- recall:
+-- sequence_ :: Monad m => [m a] -> m ()
+-- sequence_ = foldr (>>) done
+
+-- Use: fusion law of fldr, laws of put and get, the monad law
+-- do {stmts1} >> do {stmts2} = do {stmts1;stmts2}
+
+-- Try to start with fusion which seems the obvious/only thing here, so rewrite it with fold first.
+-- Then the statement to prove becomes:
+-- foldr (>>) done . map add = add . sum
+--
+-- Fusion law states:
+-- f . foldr g a = foldr h b
+-- ... Actually, this isn't obviously applicaple.
+-- sum is a fold, so I could start on the right side though:
+-- add . sum
+-- = add . foldr (+) 0
+-- { we want this after fusion }
+-- = foldr h b
+-- 1. add must be strict. n is used in the sum, so maybe it's strict but I'm not sure if this is determined by the type of State.
+-- 2. add 0 = b = do m <- get
+--                   put m
+--                   = get >>= put
+--                   = State $ s -> ((),s)
+--                   o_O
+-- 3. f (g x y) = h x (f y) for all x and y
+-- so
+-- add ((+) x y) = h x (add y)
+-- Note that
+-- add ((+) x y)
+-- = add (x+y)
+-- = do m <- get
+--      put (m+(x+y))
+-- Then
+-- h x (add y)
+-- = do m <- add y
+--      put (m+x)
+--
+-- Those look obviously equivalent (though I wouldn't know know to prove it more formally), so we obtain
+-- add . sum
+-- = foldr (\x ys -> ys >>= \m -> put (m+x)) (get >>= put)
+-- which seems rather useless. uh oh.
+--   
+-- *Sample solution ?_?*
+-- It suggests using another law concerning both foldr and map, I think this one:
+-- foldr f a . map g = foldr (f . g) a
+-- Which we can apparently use on this:
+-- sequence_ . map add
+-- { Def. sequence_ }
+-- = foldr (>>) done . map add
+-- { fusion map foldr rule from above }
+-- = foldr ((>>) . add) done
+-- ok, this is nice.
+-- So this simplifies s.t. we now want to show
+-- foldr ((>>) . add) done = add . sum
+-- What does (>>) . add mean?
+-- Obviously, add expects an Int, and >> expects a second argument, so we can write this as infix:
+-- ((>>) . add) n p = (>>) (add n) p = add n >> p
+-- Now use sum = foldr (+) 0 and observe we have to show:
+--
+-- foldr (\n p -> add n >> p) done = add . foldr (+) 0
+--
+-- Which now begins to look like a better place to use the fusion rule. maybe. Let's try...
+-- f . foldr g a = foldr h b
+-- 1. Add is still (probably, sorta) strict.
+-- 2. add 0 =? done
+--    add 0 = get >>= put, so this should be true. also, just looking at it, this is obviously correct.
+-- 3. f (g x y) = h x (f y)
+--  f = add
+--  b = done
+--  g = (+)
+--  h = \n p -> add n >> p
+--  So show that
+--  add ((+) x y) = (\n p -> add n >> p) x (add y)
+--  { apply lambda }
+--  add ((+) x y) = add x >> add y
+--  { apply + }
+--  add (x+y) = add x >> add y
+--  Which finally looks actually like a nice thing that we could reasonable prove...
+--  It seems we are now done with fusion, and get to the get/put/>> laws.
+--  add x >> add y
+--  { do doesn't actually do anything I guess }
+--  = do add x >> do add y
+--  { monad law from exercise }
+--  = do add x; add y
+--  hm, that seemed a bit useless?
+--  do add x; add y
+--  { Def. add }
+--  = do m <- get
+--       put (m+x)
+--       m' <- get
+--       put (m'+y)
+-- And
+-- add (x+y)
+-- = do m <- get
+--      put (m+(x+y))
+-- ... So ?_?
+-- the sample solution applies something called the "simple law of put and get" to simplify the get/put/get/put
+-- thingy, but it doesn't state the law explicitly, so whatever.
+
+-- recall:
+-- add :: Int -> State Int ()
+-- add n = do m <- get
+--            put (m+n)
+
