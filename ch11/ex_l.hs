@@ -315,3 +315,40 @@ myShowsPrec p (Bin op e1 e2) = showParen (p>q)
                                 (myShowsPrec q e1 . showSpace . showsop op . showSpace . myShowsPrec (q+1) e2)
     where q = prec op
 -- this is a lot of magic and I'm not sure this is even always correct. I can't find a counterexample though.
+
+---- now ex (l) ...
+isMulOp Mul = True
+isMulOp Div = True
+isMulOp _ = False
+
+showsF :: (Op -> Bool) -> Expr -> ShowS
+showsF _ (Con n) = showString (show n)
+showsF f (Bin op e1 e2) = showParen (f op) (showsF f1 e1 . showSpace . showsop op . showSpace . showsF f2 e2)
+    where f1 x = (isMulOp op && (not . isMulOp) x) -- closes over the operator in the current level, and defers decision on next lower level
+          f2 x = (isMulOp op || (not . isMulOp) x)
+
+showL e = showsF (const False) e -- we never need parentheses on the top level!
+
+-- this... seems to work.
+-- It also looks a bit magic although it's actually merely a quite direct encoding of the given rules. uh oh.
+-- At my first attempt I tried to enforce the parentheses top down which should also be possible.
+-- But a bit uglier. but still, let's try this:
+
+isMulTopLevel (Con _) = False
+isMulTopLevel (Bin Mul _ _) = True
+isMulTopLevel (Bin Div _ _) = True
+isMulTopLevel (Bin _ _ _) = False
+
+isCon (Con _) = True
+isCon _ = False
+
+showMy :: Expr -> ShowS
+showMy (Con n) = showString (show n)
+showMy (Bin op e1 e2) = showParen left (showMy e1) . showSpace . showsop op . showSpace . showParen right (showMy e2)
+    where left = (not . isCon) e1 && (isMulOp op && (not . isMulTopLevel) e1)
+          right = (not . isCon) e2 && (isMulOp op || (not . isMulTopLevel) e2)
+
+-- this works, too, and it is even more direct and not hard to understand.
+-- The disadvantage is that I need to "peek down" into the next structure, which then happens multiple times,
+-- so this is probably a bit slower.
+-- The sample solution approach just defers the decision to (or not to) introduce parentheses one more step.

@@ -1,0 +1,21 @@
+-- Prove:
+-- fail >> p = fail
+--
+-- Def. fail:
+-- fail = Parser (\s -> [])
+
+-- Try to prove this by just writing down the definition:
+-- fail >> p
+-- { Def. >> }
+-- = Parser (\s -> [(y,s'') | (x,s') <- apply fail s, (y,s'') <- apply p s'])
+-- { Def. fail }
+-- = Parser (\s -> [(y,s'') | (x,s') <- [], (y,s'') <- apply p s'])
+-- { list comprehensions, this is how they work }
+-- = Parser (\s -> [])
+-- { Def. fail }
+-- = fail
+--
+-- the sample solution... doesn't even think this is worth writing down, just that
+-- fail >> p
+-- = fail >>= const p
+-- which is true but didn't seem *that* interesting to me...

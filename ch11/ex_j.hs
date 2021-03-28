@@ -315,3 +315,20 @@ myShowsPrec p (Bin op e1 e2) = showParen (p>q)
                                 (myShowsPrec q e1 . showSpace . showsop op . showSpace . myShowsPrec (q+1) e2)
     where q = prec op
 -- this is a lot of magic and I'm not sure this is even always correct. I can't find a counterexample though.
+
+-- new things for (j)...
+-- expr ::= term {op term}*
+
+exprj :: Parser Expr
+exprj = do e1 <- term
+           pes <- many (pair op term)
+           return (foldl shunt e1 pes)
+
+pair :: Parser Op -> Parser Expr -> Parser (Op,Expr)
+pair o t = (,) <$> o <*> t
+
+shunt :: Expr -> (Op,Expr) -> Expr
+shunt e1 (op,e2) = Bin op e1 e2
+
+-- this seems like it should be correct.
+-- what are those weird words though ?

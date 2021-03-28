@@ -1,34 +1,13 @@
 import Data.Char
 
--- type Parser a = String -> a
--- this is like read. It consumes the whole input.
-
--- type Parser a = String -> (a,String)
--- this is more flexible, but it's not allowed to fail.
-
--- type Parser a = String -> [(a,String)]
--- this can fail and/or parse different things.
--- it's as ReadS in the prelude o_O
---
--- reads instances should be deterministic parsers, but I don't think this is enforced...
---
--- Aaand we can't make this into a Monad, because it is only a type synonym.
-
--- data Parser a = String -> [(a,String)]
--- ^ This is also bad because it's not isomorphic and we get Parser bottom as extra thingy. lol.
-
 newtype Parser a = Parser (String -> [(a,String)])
 
 apply :: Parser a -> String -> [(a,String)]
 apply (Parser p) s = p s
 
--- Parser / apply are mutual inverses and "witness the isomorphism" yay.
-
 parse :: Parser a -> String -> a
 parse p = fst . head . apply p
 
--- book is too old and doesn't tell me how to implement functor and Applicative so I'll just hack this together
--- although I could also rely on >>= of course.
 instance Functor Parser where 
     fmap f (Parser p) = Parser $ \s -> map op (p s)
         where op (a,s) = (f a, s)
@@ -36,7 +15,6 @@ instance Functor Parser where
 instance Applicative Parser where 
     pure x = Parser (\s -> [(x,s)])
     (Parser p) <*> (Parser q) = Parser $ \s -> [(f y,s'') | (f,s') <- p s, (y,s'') <- q s']
--- I hope this is correct o_O
 
 instance Monad Parser where
     return x = Parser (\s -> [(x,s)])
@@ -215,103 +193,49 @@ somewith q p = do x <- p
                   xs <- many (q >> p)
                   return (x:xs)
 
--- Grammars
-data Expr = Con Int | Bin Op Expr Expr deriving (Eq)
--- data Op = Plus | Minus deriving (Eq,Show)
--- ^ replaced below with more things
+--- new: ex. g
+-- a parser for floating point numbers.
+-- I don't think I know exactly which floating point numbers are even legal o_O
+-- Those, I think:
+-- 28.0
+-- 27.04
+-- -8.3
+-- - 8.3 (? let's allow this...)
+-- 5
+-- Also there's scientific notation, but let's skip that for the moment.
+float :: Parser Float
+float = do symbol "-"
+           n <- floatZZZ
+           return (-n)
+        <|> floatZZZ
 
-expr :: Parser Expr
-expr = token (constant <|> paren binary)
-constant = do n <- nat
-              return $ Con n
-binary = do e1 <- expr
-            p <- op
-            e2 <- expr
-            return $ Bin p e1 e2
-op = (symbol "+" >> return Plus) <|> (symbol "-" >> return Minus)
+floatZZZ :: Parser Float
+floatZZZ = token flo
 
--- exercise
-paren :: Parser Expr -> Parser Expr
-paren p = do symbol "("
-             x <- p
-             symbol ")"
-             return x
+-- "1234"
+flo :: Parser Float
+flo = do pre <- nat
+         (post,l) <- restF
+         pure $ (fromIntegral pre) + ((fromIntegral post) / (fromIntegral $ 10^(fromIntegral l)))
 
--- I'll skip the broken left recursion lol.
--- Left recursion can be avoided by transforming it into right recursion, and then the grammar looks weird.
--- Here, we use another approach which looks more like regex o_O i.e. expr = term {op term}*
-expr2 = token (term >>= rest2)
-term = token (constant <|> paren expr2)
--- e1 for rest2 is an accumulating parameter, taking all that has been parsed so far.
-rest2 e1 = do p <- op
-              e2 <- term
-              rest2 (Bin p e1 e2)
-           <|> return e1
+restF :: Parser (Int,Int)
+restF = do char '.'
+           ds <- some digit
+           pure (foldl1 shiftl ds,length ds)
+        <|> pure (0,0)
+               where shiftl m n = 10*m+n
 
--- parser for +-*/ expressions
-data Op = Plus | Minus | Mul | Div deriving (Eq,Show)
+-- this... seems to work. also it's really ugly. lol.
+-- the sample solution uses another shift trick, and just assumes that . is there and also it seems broken.
+-- lol. really? again? o_O let's check this:
 
-expr3 = token (term3 >>= rest3)
-rest3 e1 = do p <- addop
-              e2 <- term3
-              rest3 (Bin p e1 e2)
-           <|> return e1
-term3 = token (factor >>= more3)
-more3 e1 = do p <- mulop
-              e2 <- factor
-              more3 (Bin p e1 e2)
-            <|> return e1
-factor = token (constant <|> paren expr3)
+floatS :: Parser Float
+floatS = do ds <- some digit
+            char '.'
+            fs <- some digit
+            pure (foldl shiftl 0 ds + foldr shiftr 0 fs)
+        where shiftl n d = 10*n + fromIntegral d
+              shiftr f x = (fromIntegral f+x) / 10
 
--- exercise
-addop = (symbol "+" >> return Plus) <|> (symbol "-" >> return Minus)
-mulop = (symbol "*" >> return Mul) <|> (symbol "/" >> return Div)
-
--- showing the things
--- this should satisfy
--- (parse expr3 . show) e = e
--- instance Show Expr where 
---     show (Con n) = show n
---     show (Bin op e1 e2) =
---         "(" ++ show e1 ++
---             " " ++ showop op ++
---                 " " ++ show e2 ++ ")"
--- showop Plus  = "+"
--- showop Minus = "-"
--- ^ this first try works, but it takes, like, worst case quadratic, which is, like, bad.
--- try again with magic built-in functions that use accumulating parameters.
-instance Show Expr where 
-    show e = shows e ""
-        where 
-        shows (Con n) = showString (Prelude.show n) -- why can't this disambiguate the right function by type signature?
-        shows (Bin op e1 e2) = showParen True (shows e1 . showSpace . showsop op . showSpace . shows e2)
-showsop Plus = showChar '+'
-showsop Minus = showChar '-'
-showsop Mul = showChar '*'
-showsop Div = showChar '/'
-showSpace = showChar ' '
--- now this is like, linear. it uses showChar, showString, showParen.
--- not sure what this does. it looks a bit like CPS maybe ?_?
-
--- those were a lot of parentheses. let's try to reduce them.
-show2 e = shows False e ""
-    where 
-    shows b (Con n) = showString (show n)
-    shows b (Bin op e1 e2) = showParen b (shows False e1 . showSpace . showsop op . showSpace . shows True e2)
-
--- now also for things with * and / where everything is harder...
-prec :: Op -> Int
-prec Mul = 2
-prec Div = 2
-prec Plus = 1
-prec Minus = 1
-
-show3 e = myShowsPrec 0 e ""
-
--- assumption: parent of e is a compound expression with an operator of precedence p
-myShowsPrec :: Int -> Expr -> ShowS
-myShowsPrec _ (Con n) = showString (show n)
-myShowsPrec p (Bin op e1 e2) = showParen (p>q)
-                                (myShowsPrec q e1 . showSpace . showsop op . showSpace . myShowsPrec (q+1) e2)
-    where q = prec op
--- this is a lot of magic and I'm not sure this is even always correct. I can't find a counterexample though.
+-- ah, wait it's not actually broken because it actually starts on 0, and uses foldr rather than foldr1, ok.
+-- also it ignores a leading '-'. weird.

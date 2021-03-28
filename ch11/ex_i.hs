@@ -1,34 +1,24 @@
 import Data.Char
 
--- type Parser a = String -> a
--- this is like read. It consumes the whole input.
-
--- type Parser a = String -> (a,String)
--- this is more flexible, but it's not allowed to fail.
-
--- type Parser a = String -> [(a,String)]
--- this can fail and/or parse different things.
--- it's as ReadS in the prelude o_O
+-- what is a fully parenthesized expression?_?
+-- what about (((((((3)))))))?
+-- ...
+-- the last parser seems to allow this, since you can derive
+-- expr -> term -> factor -> (expr) -> (term) -> (factor) -> (nat)
+-- or even more ((()))...
+-- the first grammar doesn't allow it.
+-- I don't get why I would have to design anything here. We already built the parser?___?
 --
--- reads instances should be deterministic parsers, but I don't think this is enforced...
---
--- Aaand we can't make this into a Monad, because it is only a type synonym.
-
--- data Parser a = String -> [(a,String)]
--- ^ This is also bad because it's not isomorphic and we get Parser bottom as extra thingy. lol.
+-- ... Taking a glance at the sample solution, it seems that this wants me to adapt the first grammar...
 
 newtype Parser a = Parser (String -> [(a,String)])
 
 apply :: Parser a -> String -> [(a,String)]
 apply (Parser p) s = p s
 
--- Parser / apply are mutual inverses and "witness the isomorphism" yay.
-
 parse :: Parser a -> String -> a
 parse p = fst . head . apply p
 
--- book is too old and doesn't tell me how to implement functor and Applicative so I'll just hack this together
--- although I could also rely on >>= of course.
 instance Functor Parser where 
     fmap f (Parser p) = Parser $ \s -> map op (p s)
         where op (a,s) = (f a, s)
@@ -36,7 +26,6 @@ instance Functor Parser where
 instance Applicative Parser where 
     pure x = Parser (\s -> [(x,s)])
     (Parser p) <*> (Parser q) = Parser $ \s -> [(f y,s'') | (f,s') <- p s, (y,s'') <- q s']
--- I hope this is correct o_O
 
 instance Monad Parser where
     return x = Parser (\s -> [(x,s)])
@@ -91,21 +80,6 @@ lowers = do c <- lower
             cs <- lowers
             return (c:cs)
         <|> return ""
-
-wrong :: Parser Int
-wrong = digit <|> addition
-
-addition :: Parser Int
-addition = do m <- digit
-              char '+'
-              n <- digit
-              return (m + n)
-
--- consider
--- apply wrong "1+2"
-
-better :: Parser Int
-better = addition <|> digit
 
 -- Problem:
 -- apply better "1"
@@ -216,9 +190,8 @@ somewith q p = do x <- p
                   return (x:xs)
 
 -- Grammars
-data Expr = Con Int | Bin Op Expr Expr deriving (Eq)
--- data Op = Plus | Minus deriving (Eq,Show)
--- ^ replaced below with more things
+data Expr = Con Int | Bin Op Expr Expr deriving (Show,Eq)
+data Op = Plus | Minus deriving (Eq,Show)
 
 expr :: Parser Expr
 expr = token (constant <|> paren binary)
@@ -237,81 +210,20 @@ paren p = do symbol "("
              symbol ")"
              return x
 
--- I'll skip the broken left recursion lol.
--- Left recursion can be avoided by transforming it into right recursion, and then the grammar looks weird.
--- Here, we use another approach which looks more like regex o_O i.e. expr = term {op term}*
-expr2 = token (term >>= rest2)
-term = token (constant <|> paren expr2)
--- e1 for rest2 is an accumulating parameter, taking all that has been parsed so far.
-rest2 e1 = do p <- op
-              e2 <- term
-              rest2 (Bin p e1 e2)
-           <|> return e1
+-- Before grammar:
+-- Expr -> Nat | ( Expr op Expr )
+-- New:
+-- Expr -> Nat | (Nat) | ( Expr op Expr )
+-- this still only allows one level of nesting, but whatever
 
--- parser for +-*/ expressions
-data Op = Plus | Minus | Mul | Div deriving (Eq,Show)
+exprMP :: Parser Expr
+exprMP = token (constant' <|> paren exprMP <|> paren binary')
+constant' = do n <- nat
+               return $ Con n
+binary' = do e1 <- exprMP
+             p <- op'
+             e2 <- exprMP
+             return $ Bin p e1 e2
+op' = (symbol "+" >> return Plus) <|> (symbol "-" >> return Minus)
 
-expr3 = token (term3 >>= rest3)
-rest3 e1 = do p <- addop
-              e2 <- term3
-              rest3 (Bin p e1 e2)
-           <|> return e1
-term3 = token (factor >>= more3)
-more3 e1 = do p <- mulop
-              e2 <- factor
-              more3 (Bin p e1 e2)
-            <|> return e1
-factor = token (constant <|> paren expr3)
-
--- exercise
-addop = (symbol "+" >> return Plus) <|> (symbol "-" >> return Minus)
-mulop = (symbol "*" >> return Mul) <|> (symbol "/" >> return Div)
-
--- showing the things
--- this should satisfy
--- (parse expr3 . show) e = e
--- instance Show Expr where 
---     show (Con n) = show n
---     show (Bin op e1 e2) =
---         "(" ++ show e1 ++
---             " " ++ showop op ++
---                 " " ++ show e2 ++ ")"
--- showop Plus  = "+"
--- showop Minus = "-"
--- ^ this first try works, but it takes, like, worst case quadratic, which is, like, bad.
--- try again with magic built-in functions that use accumulating parameters.
-instance Show Expr where 
-    show e = shows e ""
-        where 
-        shows (Con n) = showString (Prelude.show n) -- why can't this disambiguate the right function by type signature?
-        shows (Bin op e1 e2) = showParen True (shows e1 . showSpace . showsop op . showSpace . shows e2)
-showsop Plus = showChar '+'
-showsop Minus = showChar '-'
-showsop Mul = showChar '*'
-showsop Div = showChar '/'
-showSpace = showChar ' '
--- now this is like, linear. it uses showChar, showString, showParen.
--- not sure what this does. it looks a bit like CPS maybe ?_?
-
--- those were a lot of parentheses. let's try to reduce them.
-show2 e = shows False e ""
-    where 
-    shows b (Con n) = showString (show n)
-    shows b (Bin op e1 e2) = showParen b (shows False e1 . showSpace . showsop op . showSpace . shows True e2)
-
--- now also for things with * and / where everything is harder...
-prec :: Op -> Int
-prec Mul = 2
-prec Div = 2
-prec Plus = 1
-prec Minus = 1
-
-show3 e = myShowsPrec 0 e ""
-
--- assumption: parent of e is a compound expression with an operator of precedence p
-myShowsPrec :: Int -> Expr -> ShowS
-myShowsPrec _ (Con n) = showString (show n)
-myShowsPrec p (Bin op e1 e2) = showParen (p>q)
-                                (myShowsPrec q e1 . showSpace . showsop op . showSpace . myShowsPrec (q+1) e2)
-    where q = prec op
--- this is a lot of magic and I'm not sure this is even always correct. I can't find a counterexample though.
+-- this does seem to work. I don't like it though ._.

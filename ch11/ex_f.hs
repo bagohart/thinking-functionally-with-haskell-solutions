@@ -1,0 +1,55 @@
+-- messy laws of MonadPlus (or rather, Alternative?)
+-- Uncontroversial: Associativity for <|> and identity empty:
+-- (a <|> b) <|> c = a <|> (b <|> c) 
+-- empty <|> a = a
+-- a <|> empty = a
+--
+-- 'reasonable': left-zero
+-- mzero >>= f = mzero
+-- 'imposable' o_O: right-zero
+-- f >> mzero = mzero
+
+-- Task 1: check if the list monad satisfies these things.
+-- The first 3 are easy:
+-- mplus = (++) which is associative.
+-- lists have [] as left and right identity for (++)
+-- Left-zero is satisfied, too:
+-- [] >>= f = concat [f x| x <- []] = concat [] = []
+-- Right-zero, too: (this is a tad less obvious)
+-- p >> [] = p >>= const [] = concat [[],[],...[]] = []
+
+-- Task 2: check for the Maybe Monad.
+-- Associativity:
+-- (a `mplus` b) `mplus` c
+-- = the first Just-value from left to right, if any.
+-- a `mplus` (b `mplus` c)
+-- = the first Just-value from left to right, if any.
+-- Identity:
+-- Nothing `mplus` y = y
+-- y `mplus` Nothing = y
+--
+-- Left-zero:
+-- Nothing >>= f = Nothing
+-- Right-zero:
+-- p >> Nothing = Nothing
+--
+-- Looks good.
+
+-- Task 3:
+-- left-distribution law says:
+-- (p `mplus` q) >>= f    =    (p >>= f) `mplus` (q >>= f)
+-- It seems that Maybe breaks this law. Why? Let's see...
+-- If both p and q are Just, then
+-- (p `mplus` q) >>= f
+-- = p >>= f
+--
+-- and
+-- (p >>= f) `mplus` (q >>= f)
+-- = p >>= f `mplus` (q >>= f)
+--
+-- So this is the problem:
+-- if p >>= f is Nothing, then the second term evaluates to q >>= f, which can be Just.
+-- But the first term already dropped q, so it will just stay Nothing.
+-- If q >>= f = Just, then both are equal.
+--
+-- ...The sample solution argues with the same case, though it uses f = const Nothing and then needs q = bottom o_O
